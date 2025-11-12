@@ -1,0 +1,12 @@
+server:
+  port: ${APP_PORT:8085}
+  servlet:
+    context-path: ${SERVER_CONTEXT_PATH:/pg}
+  error.include-message: always
+  error.include-binding-errors: always
+  error.include-stacktrace: never
+  error.include-exceptions: false
+
+spring:
+  profiles:
+    active: dev
