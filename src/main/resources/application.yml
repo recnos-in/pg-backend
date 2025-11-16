@@ -7,6 +7,38 @@ server:
   error.include-stacktrace: never
   error.include-exceptions: false
 
+# CORS Configuration
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080,http://localhost:5173}
+
 spring:
   profiles:
     active: dev
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: ${FILE_MAX_SIZE:5MB}
+      max-request-size: ${FILE_MAX_REQUEST_SIZE:25MB}
+
+# AWS S3 Configuration
+aws:
+  s3:
+    bucket-name: ${AWS_S3_BUCKET:pg-backend-uploads}
+    region: ${AWS_REGION:us-east-1}
+    access-key: ${AWS_ACCESS_KEY:test}
+    secret-key: ${AWS_SECRET_KEY:test}
+    cloud-front-domain: ${AWS_CLOUDFRONT_DOMAIN:}
+
+# File Upload Configuration
+file:
+  upload:
+    max-file-size: 5MB
+    max-request-size: 25MB
+    allowed-extensions: jpg,jpeg,png,webp,heic
+    max-images-per-request: 10
+    max-dimension: 1920
+    presigned-url-expiration: 15 # minutes
+    rate-limit:
+      capacity: 20 # uploads per period
+      refill-tokens: 20
+      refill-period: 1 # hours

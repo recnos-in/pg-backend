@@ -47,7 +47,10 @@ public class SwaggerConfig {
                                 .description("Development Server"),
                         new Server()
                                 .url("https://api.recnos.org" + contextPath)
-                                .description("Production Server")
+                                .description("Production Server"),
+                        new Server()
+                                .url("https://hilma-chipproof-paranoidly.ngrok-free.dev" + contextPath)
+                                .description("Ngrok server")
                 ))
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                 .components(new Components()
