@@ -1,0 +1,20 @@
+version: "2"
+authtoken: 33rcFHXwFKAz7dshUAOWIhsPUYF_5kA3LXQCskZPqhmnvkqC3
+
+tunnels:
+  pg-backend:
+    proto: http
+    addr: 8085
+    schemes:
+      - https
+    inspect: true
+    # Optional: Use a custom subdomain (requires paid plan)
+    # subdomain: your-custom-subdomain
+
+    # Optional: Add basic auth for extra security
+    # auth: "username:password"
+
+    # Optional: Set request headers
+    # request_header:
+    #   add:
+    #     - "X-Source: ngrok"
