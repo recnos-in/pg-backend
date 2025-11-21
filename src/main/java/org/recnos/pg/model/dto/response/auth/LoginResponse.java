@@ -11,7 +11,6 @@ import org.recnos.pg.model.dto.response.user.UserProfileResponse;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoginResponse {
-
     private String message;
     private UserProfileResponse user;
     private TokenResponse tokens;

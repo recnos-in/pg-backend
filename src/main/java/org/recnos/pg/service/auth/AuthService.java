@@ -134,6 +134,10 @@ public class AuthService {
 
     @Transactional
     public LoginResponse loginWithOtp(OtpVerificationRequest request) {
+        //Verify user exists
+        if(!userRepository.existsByMobile(request.getMobile())) {
+            throw new BadRequestException("User with given mobile number does not exist. Please register first.");
+        }
         // Verify OTP first
         boolean isOtpValid = otpService.verifyOtp(request);
         if (!isOtpValid) {
@@ -150,6 +154,10 @@ public class AuthService {
     @Transactional
     public OwnerLoginResponse loginOwnerWithOtp(OtpVerificationRequest request) {
         // Verify OTP first
+        if(!ownerRepository.existsByMobile(request.getMobile())) {
+            throw new BadRequestException("Owner with given mobile number does not exist. Please register first.");
+        }
+
         boolean isOtpValid = otpService.verifyOtp(request);
         if (!isOtpValid) {
             throw new InvalidCredentialsException("Invalid OTP");
@@ -244,6 +252,46 @@ public class AuthService {
                 .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .expiresIn(jwtConfig.getAccessTokenExpiration() / 1000) // Convert to seconds
+                .build();
+    }
+
+    public OwnerLoginResponse registerOwner(RegisterRequest registerRequest) {
+        // Check for duplicate email
+        if (ownerRepository.existsByEmail(registerRequest.getEmail())) {
+            throw new DuplicateResourceException("Email already registered");
+        }
+
+        // Check for duplicate mobile
+        if (ownerRepository.existsByMobile(registerRequest.getMobile())) {
+            throw new DuplicateResourceException("Mobile number already registered");
+        }
+
+        // Create new owner
+        Owner owner = new Owner();
+        owner.setName(registerRequest.getName());
+        owner.setEmail(registerRequest.getEmail());
+        owner.setMobile(registerRequest.getMobile());
+        owner.setPasswordHash(null);
+        owner.setIsEmailVerified(false);
+        owner.setIsMobileVerified(false);
+        owner.setMfaEnabled(false);
+        owner.setLoginAttempts(0);
+        owner.setIsBlocked(false);
+        owner.setIsVerified(false);
+        owner.setVerificationStatus("pending");
+        owner.setTrustScore(0);
+        owner.setComplaintCount(0);
+        owner.setAutoRespondEnabled(false);
+
+        Owner savedOwner = ownerRepository.save(owner);
+
+        // Generate tokens
+        TokenResponse tokens = generateTokens(savedOwner.getId());
+
+        return OwnerLoginResponse.builder()
+                .message("Owner registered successfully")
+                .owner(ownerMapper.toProfileResponse(savedOwner))
+                .tokens(tokens)
                 .build();
     }
 }

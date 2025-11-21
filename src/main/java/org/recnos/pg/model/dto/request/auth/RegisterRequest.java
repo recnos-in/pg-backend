@@ -27,9 +27,13 @@ public class RegisterRequest {
     @Pattern(regexp = "^\\+?[1-9]\\d{1,14}$", message = "Invalid mobile number format")
     private String mobile;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 8, message = "Password must be at least 8 characters")
+//    @NotBlank(message = "Password is required")
+//    @Size(min = 8, message = "Password must be at least 8 characters")
     private String password;
+
+    @NotBlank(message = "User type is required")
+    @Pattern(regexp = "^(USER|OWNER)$", message = "User type must be USER or OWNER")
+    private String userType; // "USER" or "OWNER"
 
     private String googleId;
 }
