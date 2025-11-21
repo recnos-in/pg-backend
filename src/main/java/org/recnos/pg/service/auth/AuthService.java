@@ -2,20 +2,27 @@ package org.recnos.pg.service.auth;
 
 import lombok.RequiredArgsConstructor;
 import org.recnos.pg.config.JwtConfig;
+import org.recnos.pg.exception.BadRequestException;
 import org.recnos.pg.exception.DuplicateResourceException;
 import org.recnos.pg.exception.InvalidCredentialsException;
+import org.recnos.pg.mapper.OwnerMapper;
 import org.recnos.pg.mapper.UserMapper;
 import org.recnos.pg.model.dto.request.auth.LoginRequest;
+import org.recnos.pg.model.dto.request.auth.OtpVerificationRequest;
 import org.recnos.pg.model.dto.request.auth.RegisterRequest;
 import org.recnos.pg.model.dto.response.auth.LoginResponse;
 import org.recnos.pg.model.dto.response.auth.RegisterResponse;
 import org.recnos.pg.model.dto.response.auth.TokenResponse;
+import org.recnos.pg.model.dto.response.owner.OwnerLoginResponse;
+import org.recnos.pg.model.entity.Owner;
 import org.recnos.pg.model.entity.User;
+import org.recnos.pg.repository.OwnerRepository;
 import org.recnos.pg.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Service
@@ -23,10 +30,13 @@ import java.time.LocalDateTime;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final OwnerRepository ownerRepository;
     private final UserMapper userMapper;
+    private final OwnerMapper ownerMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final JwtConfig jwtConfig;
+    private final OtpService otpService;
 
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
@@ -120,6 +130,109 @@ public class AuthService {
         }
 
         userRepository.save(user);
+    }
+
+    @Transactional
+    public LoginResponse loginWithOtp(OtpVerificationRequest request) {
+        // Verify OTP first
+        boolean isOtpValid = otpService.verifyOtp(request);
+        if (!isOtpValid) {
+            throw new InvalidCredentialsException("Invalid OTP");
+        }
+
+        if ("USER".equals(request.getUserType())) {
+            return loginUserWithOtp(request.getMobile());
+        } else {
+            throw new BadRequestException("Invalid user type");
+        }
+    }
+
+    @Transactional
+    public OwnerLoginResponse loginOwnerWithOtp(OtpVerificationRequest request) {
+        // Verify OTP first
+        boolean isOtpValid = otpService.verifyOtp(request);
+        if (!isOtpValid) {
+            throw new InvalidCredentialsException("Invalid OTP");
+        }
+
+        return loginOwnerWithOtpInternal(request.getMobile());
+    }
+
+    private LoginResponse loginUserWithOtp(String mobile) {
+        // Find or create user
+        User user = userRepository.findByMobile(mobile)
+                .orElseGet(() -> {
+                    User newUser = new User();
+                    newUser.setMobile(mobile);
+                    newUser.setName("User_" + mobile);
+                    newUser.setEmail(mobile + "@temp.com"); // Temporary email
+                    newUser.setIsMobileVerified(true);
+                    newUser.setIsEmailVerified(false);
+                    newUser.setMfaEnabled(false);
+                    newUser.setLoginAttempts(0);
+                    newUser.setIsBlocked(false);
+                    return userRepository.save(newUser);
+                });
+
+        // Check if user is blocked
+        if (Boolean.TRUE.equals(user.getIsBlocked())) {
+            throw new InvalidCredentialsException("Account is blocked. Please contact support.");
+        }
+
+        // Update mobile verification and login time
+        user.setIsMobileVerified(true);
+        user.setLastLogin(LocalDateTime.now());
+        userRepository.save(user);
+
+        // Generate tokens
+        TokenResponse tokens = generateTokens(user.getId());
+
+        return LoginResponse.builder()
+                .message("Login successful")
+                .user(userMapper.toProfileResponse(user))
+                .tokens(tokens)
+                .build();
+    }
+
+    private OwnerLoginResponse loginOwnerWithOtpInternal(String mobile) {
+        // Find or create owner
+        Owner owner = ownerRepository.findByMobile(mobile)
+                .orElseGet(() -> {
+                    Owner newOwner = new Owner();
+                    newOwner.setMobile(mobile);
+                    newOwner.setName("Owner_" + mobile);
+                    newOwner.setEmail(mobile + "@temp.com"); // Temporary email
+                    newOwner.setIsMobileVerified(true);
+                    newOwner.setIsEmailVerified(false);
+                    newOwner.setMfaEnabled(false);
+                    newOwner.setLoginAttempts(0);
+                    newOwner.setIsBlocked(false);
+                    newOwner.setIsVerified(false);
+                    newOwner.setVerificationStatus("pending");
+                    newOwner.setTrustScore(50);
+                    newOwner.setComplaintCount(0);
+                    newOwner.setAutoRespondEnabled(false);
+                    return ownerRepository.save(newOwner);
+                });
+
+        // Check if owner is blocked
+        if (Boolean.TRUE.equals(owner.getIsBlocked())) {
+            throw new InvalidCredentialsException("Account is blocked. Please contact support.");
+        }
+
+        // Update mobile verification and login time
+        owner.setIsMobileVerified(true);
+        owner.setLastLogin(Instant.now());
+        ownerRepository.save(owner);
+
+        // Generate tokens
+        TokenResponse tokens = generateTokens(owner.getId());
+
+        return OwnerLoginResponse.builder()
+                .message("Login successful")
+                .owner(ownerMapper.toProfileResponse(owner))
+                .tokens(tokens)
+                .build();
     }
 
     private TokenResponse generateTokens(java.util.UUID userId) {

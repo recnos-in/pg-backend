@@ -11,15 +11,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class OtpVerificationRequest {
+public class OtpSendRequest {
 
     @NotBlank(message = "Mobile number is required")
     @Pattern(regexp = "^[+]?[0-9]{10,15}$", message = "Invalid mobile number format")
     private String mobile;
-
-    @NotBlank(message = "OTP is required")
-    @Pattern(regexp = "^[0-9]{6}$", message = "OTP must be 6 digits")
-    private String otp;
 
     @NotBlank(message = "User type is required")
     @Pattern(regexp = "^(USER|OWNER)$", message = "User type must be USER or OWNER")

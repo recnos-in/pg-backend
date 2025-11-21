@@ -1,0 +1,63 @@
+# Systemd service file for PG Backend Spring Boot Application
+# Copy this file to: /etc/systemd/system/pg-backend.service
+#
+# After copying:
+# sudo systemctl daemon-reload
+# sudo systemctl enable pg-backend
+# sudo systemctl start pg-backend
+
+[Unit]
+Description=PG Backend Spring Boot Application
+Documentation=https://github.com/your-org/pg-backend
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# User and Group
+User=ubuntu
+Group=ubuntu
+
+# Working directory
+WorkingDirectory=/opt/pg-backend
+
+# Environment variables
+EnvironmentFile=/opt/pg-backend/.env
+
+# JVM Options
+Environment="JAVA_OPTS=-Xms512m -Xmx1024m -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/opt/pg-backend/logs"
+
+# Start command
+ExecStart=/usr/bin/java $JAVA_OPTS -jar /opt/pg-backend/pg-backend-1.0.jar
+
+# Stop gracefully
+SuccessExitStatus=143
+TimeoutStopSec=30
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pg-backend
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Memory limit (optional - adjust based on your EC2 instance)
+MemoryMax=2G
+MemoryHigh=1.5G
+
+# CPU limit (optional)
+# CPUQuota=200%
+
+[Install]
+WantedBy=multi-user.target
