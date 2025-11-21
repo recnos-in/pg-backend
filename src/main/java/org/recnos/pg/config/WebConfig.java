@@ -21,9 +21,7 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 .allowedOriginPatterns(
                         "http://localhost:*",
-                        "https://localhost:*",
-                        "https://*.ngrok.io",
-                        "https://*.ngrok-free.app"
+                        "https://localhost:*"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowedHeaders("*")
